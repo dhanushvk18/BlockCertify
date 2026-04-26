@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BlockCertify</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #080c10;
+      --surface:  #0d1117;
+      --border:   #1a2535;
+      --green:    #00ff88;
+      --green-dim:#00c96a;
+      --red:      #ff3c5f;
+      --amber:    #ffb347;
+      --text:     #c8d6e5;
+      --muted:    #4a5568;
+      --mono:     'Share Tech Mono', monospace;
+      --sans:     'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grid overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow blob */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(0,255,136,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,12,16,0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .logo span { color: var(--green); }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.4; }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 80px 24px 56px;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--green);
+      border: 1px solid rgba(0,255,136,0.3);
+      padding: 5px 14px;
+      border-radius: 2px;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    h1 em {
+      font-style: normal;
+      color: var(--green);
+    }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tab-btn {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      padding: 10px 28px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+    .tab-btn:hover { color: var(--text); border-color: var(--muted); }
+    .tab-btn.active {
+      background: var(--green);
+      color: #000;
+      border-color: var(--green);
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(0,255,136,0.3);
+    }
+
+    /* ── PANELS ── */
+    .panel-wrap {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+    .drop-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,255,136,0.04) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--green);
+      box-shadow: 0 0 30px rgba(0,255,136,0.1);
+    }
+    .drop-zone:hover::before, .drop-zone.dragover::before { opacity: 1; }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      display: block;
+      filter: grayscale(1) brightness(0.6);
+      transition: filter 0.3s;
+    }
+    .drop-zone:hover .drop-icon { filter: none; }
+
+    .drop-title {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .drop-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    input[type="file"] { display: none; }
+
+    /* ── FILE PREVIEW ── */
+    .file-preview {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: rgba(0,255,136,0.05);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--green-dim);
+      word-break: break-all;
+    }
+    .file-preview.visible { display: flex; align-items: center; gap: 10px; }
+    .file-preview .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-preview .fsize { color: var(--muted); flex-shrink: 0; }
+
+    /* ── BUTTON ── */
+    .btn {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-upload {
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+    }
+    .btn-upload:hover {
+      background: #fff;
+      box-shadow: 0 0 30px rgba(0,255,136,0.4);
+    }
+    .btn-verify {
+      background: transparent;
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+    .btn-verify:hover {
+      background: rgba(0,255,136,0.08);
+      box-shadow: 0 0 20px rgba(0,255,136,0.15);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px;
+      background: rgba(0,0,0,0.3);
+      animation: progress 1.5s ease-in-out infinite;
+    }
+    @keyframes progress {
+      0%   { width: 0%; left: 0; }
+      50%  { width: 80%; left: 0; }
+      100% { width: 0%; left: 100%; }
+    }
+
+    /* ── RESULT CARD ── */
+    .result {
+      display: none;
+      margin-top: 24px;
+      border-radius: 4px;
+      overflow: hidden;
+      animation: slideUp 0.35s ease;
+    }
+    .result.visible { display: block; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      padding: 14px 20px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .result.success .result-header { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.25); border-bottom: none; }
+    .result.error   .result-header { background: rgba(255,60,95,0.1);  color: var(--red);   border: 1px solid rgba(255,60,95,0.25);  border-bottom: none; }
+    .result.warning .result-header { background: rgba(255,179,71,0.1); color: var(--amber); border: 1px solid rgba(255,179,71,0.25); border-bottom: none; }
+
+    .result-body {
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid;
+    }
+    .result.success .result-body { border-color: rgba(0,255,136,0.2); border-top: none; }
+    .result.error   .result-body { border-color: rgba(255,60,95,0.2);  border-top: none; }
+    .result.warning .result-body { border-color: rgba(255,179,71,0.2); border-top: none; }
+
+    .result-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .result-row:last-child { margin-bottom: 0; }
+
+    .result-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .result-value {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    .result-value a {
+      color: var(--green);
+      text-decoration: none;
+    }
+    .result-value a:hover { text-decoration: underline; }
+
+    /* ── STATUS BADGE ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 2px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .badge-true  { background: rgba(0,255,136,0.15); color: var(--green); }
+    .badge-false { background: rgba(255,60,95,0.12); color: var(--red); }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+
+    .how-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .step {
+      background: var(--surface);
+      padding: 28px 24px;
+      position: relative;
+    }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--green);
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+
+    .step-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .step-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 24px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-left {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .footer-right {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .steps { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">Block<span>Certify</span></div>
+    <div class="nav-status">
+      <div class="dot"></div>
+      <span>Hardhat Local Node</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-tag">Blockchain • SHA-256 • Immutable</div>
+    <h1>Document Verification<br/>on the <em>Chain</em></h1>
+    <p class="hero-sub">Upload any file to permanently anchor its fingerprint on-chain. Verify authenticity instantly — tamper-proof, trustless, forever.</p>
+  </section>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('upload')">⬆ Upload</button>
+    <button class="tab-btn"        onclick="switchTab('verify')">🔍 Verify</button>
+  </div>
+
+  <!-- PANELS -->
+  <div class="panel-wrap">
+
+    <!-- UPLOAD PANEL -->
+    <div class="panel active" id="panel-upload">
+      <div class="drop-zone" id="drop-upload"
+           ondragover="onDrag(event,'drop-upload')"
+           ondragleave="offDrag('drop-upload')"
+           ondrop="onDrop(event,'upload')"
+           onclick="document.getElementById('file-upload').click()">
+        <span class="drop-icon">📄</span>
+        <div class="drop-title">Drop your document here</div>
+        <div class="drop-sub">or click to browse — any file type accepted</div>
+      </div>
+      <input type="file" id="file-upload" onchange="onFileSelect(event,'upload')"/>
+      <div class="file-preview" id="preview-upload">
+        <span>📎</span>
+        <span class="fname" id="fname-upload"></span>
+        <span class="fsize" id="fsize-upload"></span>
+      </div>
+      <button class="btn btn-upload" id="btn-upload" onclick="uploadFile()" disabled>
+        Anchor to Blockchain
+      </button>
+      <div class="result" id="result-upload"></div>
+    </div>
+
+    <!-- VERIFY PANEL -->
+    <div class="panel" id="panel-verify">
+      <div class="drop-zone" id="drop-verify"
+           ondragover="onDrag(event,'drop-verify')"
+           ondragleave="offDrag('drop-verify')"
+           ondrop="onDrop(event,'verify')"
+           onclick="document.getElementById('file-verify').click()">
+        <span class="drop-icon">🔎</span>
+        <div class="drop-title">Drop the document to verify</div>
+        <div class="drop-sub">we'll check its hash against the blockchain</div>
+      </div>
+      <input type="file" id="file-verify" onchange="onFileSelect(event,'verify')"/>
+      <div class="file-preview" id="preview-verify">
+        <span>📎</span>
+        <span class="fname" id="fname-verify"></span>
+        <span class="fsize" id="fsize-verify"></span>
+      </div>
+      <button class="btn btn-verify" id="btn-verify" onclick="verifyFile()" disabled>
+        Verify on Blockchain
+      </button>
+      <div class="result" id="result-verify"></div>
+    </div>
+
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <div class="how-title">// how it works</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01 /</div>
+        <div class="step-title">Hash</div>
+        <div class="step-desc">Your file is hashed locally using SHA-256. The file itself never leaves your machine.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02 /</div>
+        <div class="step-title">Anchor</div>
+        <div class="step-desc">The hash is stored on-chain via a smart contract. Immutable and timestamped forever.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03 /</div>
+        <div class="step-title">Verify</div>
+        <div class="step-desc">Re-upload any file to check if its hash matches what's recorded on the blockchain.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-left">BlockCertify v0.1 · Localhost Network</div>
+    <div class="footer-right">Smart Contract: DocumentVerification.sol</div>
+  </footer>
+
+  <script>
+    const API = "http://localhost:3000";
+    const files = { upload: null, verify: null };
+
+    // ── Tab switching ──
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach((b,i) => {
+        b.classList.toggle('active', (tab==='upload'&&i===0)||(tab==='verify'&&i===1));
+      });
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    // ── Drag & drop ──
+    function onDrag(e, id) {
+      e.preventDefault();
+      document.getElementById(id).classList.add('dragover');
+    }
+    function offDrag(id) {
+      document.getElementById(id).classList.remove('dragover');
+    }
+    function onDrop(e, type) {
+      e.preventDefault();
+      offDrag('drop-' + type);
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(type, file);
+    }
+
+    // ── File selection ──
+    function onFileSelect(e, type) {
+      const file = e.target.files[0];
+      if (file) setFile(type, file);
+    }
+
+    function setFile(type, file) {
+      files[type] = file;
+      document.getElementById('fname-' + type).textContent = file.name;
+      document.getElementById('fsize-' + type).textContent = formatSize(file.size);
+      document.getElementById('preview-' + type).classList.add('visible');
+      document.getElementById('btn-' + type).disabled = false;
+      document.getElementById('result-' + type).classList.remove('visible');
+      document.getElementById('result-' + type).style.display = 'none';
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/1048576).toFixed(1) + ' MB';
+    }
+
+    // ── Upload ──
+    async function uploadFile() {
+      if (!files.upload) return;
+      const btn = document.getElementById('btn-upload');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.textContent = 'Anchoring...';
+
+      const formData = new FormData();
+      formData.append('file', files.upload);
+
+      try {
+        const res = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (res.ok) {
+          showResult('upload', 'success', '✓ Anchored to Blockchain', [
+            { label: 'SHA-256 Hash', value: data.hash },
+            { label: 'Transaction Hash', value: data.txHash },
+            { label: 'Status', value: '<span class="badge badge-true">● STORED</span>' },
+          ]);
+        } else {
+          showResult('upload', 'error', '✗ Transaction Failed', [
+            { label: 'Error', value: data.error || 'Unknown error' },
+          ]);
+        }
+      } catch (err) {
+        showResult('upload', 'error', '✗ Connection Error', [
+          { label: 'Detail', value: 'Cannot reach backend. Is the server running on port 3000?' },
+        ]);
+      }
+
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = 'Anchor to Blockchain';
+    }
+
+    // ── Verify ──
+    async function verifyFile() {
+      if (!files.verify) return;
+      const btn = document.getElementById('btn-verify');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.textContent = 'Querying chain...';
+
+      const formData = new FormData();
+      formData.append('file', files.verify);
+
+      try {
+        const res = await fetch(`${API}/verify`, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (res.ok) {
+          const verified = data.verified;
+          showResult('verify', verified ? 'success' : 'warning',
+            verified ? '✓ Document Authentic' : '⚠ Document Not Found',
+            [
+              { label: 'SHA-256 Hash', value: data.hash },
+              {
+                label: 'Blockchain Status',
+                value: verified
+                  ? '<span class="badge badge-true">● VERIFIED</span>'
+                  : '<span class="badge badge-false">● NOT FOUND</span>'
+              },
+              { label: 'Result', value: data.message },
+            ]
+          );
+        } else {
+          showResult('verify', 'error', '✗ Verification Failed', [
+            { label: 'Error', value: data.error || 'Unknown error' },
+          ]);
+        }
+      } catch (err) {
+        showResult('verify', 'error', '✗ Connection Error', [
+          { label: 'Detail', value: 'Cannot reach backend. Is the server running on port 3000?' },
+        ]);
+      }
+
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = 'Verify on Blockchain';
+    }
+
+    // ── Result renderer ──
+    function showResult(type, kind, title, rows) {
+      const el = document.getElementById('result-' + type);
+      el.className = `result ${kind} visible`;
+      el.style.display = 'block';
+      el.innerHTML = `
+        <div class="result-header">${title}</div>
+        <div class="result-body">
+          ${rows.map(r => `
+            <div class="result-row">
+              <div class="result-label">${r.label}</div>
+              <div class="result-value">${r.value}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
